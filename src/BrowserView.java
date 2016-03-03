@@ -1,4 +1,6 @@
 import java.awt.Dimension;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -200,21 +202,16 @@ public class BrowserView {
         HBox result = new HBox();
         // create buttons, with their associated actions
         // old style way to do set up callback (anonymous class)
-        myBackButton = makeButton("BackCommand", new EventHandler<ActionEvent>() {
-            @Override      
-            public void handle (ActionEvent event) {       
-                back();        
-            }      
-        });
+        myBackButton = makeButton("BackCommand", "back");
         result.getChildren().add(myBackButton);
         // new style way to do set up callback (lambdas)
-        myNextButton = makeButton("NextCommand", event -> next());
+        myNextButton = makeButton("NextCommand", "next");
         result.getChildren().add(myNextButton);
-        myHomeButton = makeButton("HomeCommand", event -> home());
+        myHomeButton = makeButton("HomeCommand", "home");
         result.getChildren().add(myHomeButton);
         // if user presses button or enter in text field, load/show the URL
         EventHandler<ActionEvent> showHandler = new ShowPage();
-        result.getChildren().add(makeButton("GoCommand", showHandler));
+//        result.getChildren().add(makeButton("GoCommand", showHandler));
         myURLDisplay = makeInputField(40, showHandler);
         result.getChildren().add(myURLDisplay);
         return result;
@@ -226,17 +223,17 @@ public class BrowserView {
         myFavorites = new ComboBox<String>();
         myFavorites.setPromptText(myResources.getString("FavoriteFirstItem"));
         myFavorites.valueProperty().addListener((o, s1, s2) -> showFavorite(s2));
-        result.getChildren().add(makeButton("AddFavoriteCommand", event -> addFavorite()));
+        result.getChildren().add(makeButton("AddFavoriteCommand", "addFavorite"));
         result.getChildren().add(myFavorites);
-        result.getChildren().add(makeButton("SetHomeCommand", event -> {
-            myModel.setHome();
-            enableButtons();
-        }));
+//        result.getChildren().add(makeButton("SetHomeCommand", event -> {
+//            myModel.setHome();
+//            enableButtons();
+//        }));
         return result;
     }
 
     // makes a button using either an image or a label
-    private Button makeButton (String property, EventHandler<ActionEvent> handler) {
+    private Button makeButton (String property, String method) {
         // represent all supported image suffixes
         final String IMAGEFILE_SUFFIXES = 
             String.format(".*\\.(%s)", String.join("|", ImageIO.getReaderFileSuffixes()));
@@ -248,8 +245,16 @@ public class BrowserView {
                 new Image(getClass().getResourceAsStream(DEFAULT_RESOURCE_PACKAGE + label))));
         } else {
             result.setText(label);
-        }
-        result.setOnAction(handler);
+        }     
+        BrowserView self = this;
+        result.setOnAction(event -> {
+            try {
+                getClass().getDeclaredMethod(method, null).invoke(self, null);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
         return result;
     }
 
